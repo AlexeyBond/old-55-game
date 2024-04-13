@@ -1,0 +1,47 @@
+[gd_scene load_steps=7 format=3 uid="uid://ckwl1hluxxiwq"]
+
+[sub_resource type="Gradient" id="Gradient_ay4tm"]
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_to5co"]
+gradient = SubResource("Gradient_ay4tm")
+
+[sub_resource type="Gradient" id="Gradient_s8s1h"]
+offsets = PackedFloat32Array(0, 0.804762, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_p7nsf"]
+gradient = SubResource("Gradient_s8s1h")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_acpx6"]
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 16.0
+direction = Vector3(0, -1, 0)
+spread = 11.165
+initial_velocity_min = 15.04
+initial_velocity_max = 15.04
+gravity = Vector3(0, -50, 0)
+color_ramp = SubResource("GradientTexture1D_p7nsf")
+color_initial_ramp = SubResource("GradientTexture1D_to5co")
+
+[sub_resource type="GDScript" id="GDScript_4q6xe"]
+script/source = "extends GPUParticles2D
+
+
+func _ready():
+	emitting = true
+
+
+func _on_finished():
+	queue_free()
+"
+
+[node name="Vaporization" type="GPUParticles2D"]
+emitting = false
+amount = 200
+process_material = SubResource("ParticleProcessMaterial_acpx6")
+one_shot = true
+explosiveness = 0.47
+script = SubResource("GDScript_4q6xe")
+
+[connection signal="finished" from="." to="." method="_on_finished"]

@@ -1,0 +1,79 @@
+[gd_scene load_steps=5 format=3 uid="uid://buxnp08xjxwmo"]
+
+[ext_resource type="Script" path="res://player-circle.gd" id="1_smqks"]
+[ext_resource type="Script" path="res://player-summonator.gd" id="2_0k2nb"]
+
+[sub_resource type="GDScript" id="GDScript_gftm5"]
+script/source = "extends CharacterBody2D
+
+
+const SPEED: float = 300.0
+const NEGATIVE_ACCELERATION: float = 3000.0
+
+var degenerator: PackedScene = preload(\"res://degenerator.tscn\")
+
+func _physics_process(delta):
+	var direction: Vector2 = Vector2(
+		Input.get_axis(\"ui_left\", \"ui_right\"),
+		Input.get_axis(\"ui_up\", \"ui_down\")
+	)
+	if abs(direction.x) > 0.01:
+		velocity.x = direction.x * SPEED
+	else:
+		velocity.x = move_toward(velocity.x, 0, delta * NEGATIVE_ACCELERATION)
+
+	if abs(direction.y) > 0.01:
+		velocity.y = direction.y * SPEED
+	else:
+		velocity.y = move_toward(velocity.y, 0, delta * NEGATIVE_ACCELERATION)
+
+	move_and_slide()
+
+func _unhandled_input(event):
+	if event.is_action_pressed(\"ui_accept\"):
+		var map = get_node(\"..\")
+		var degenerator_instance = degenerator.instantiate();
+		degenerator_instance.target = map
+		degenerator_instance.transform = self.transform
+		map.add_child(degenerator_instance)
+
+signal disintegrated
+
+func disintegrate():
+	disintegrated.emit()
+	$Camera2D.reparent(get_parent())
+	queue_free()
+"
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_r85ru"]
+radius = 6.0
+height = 14.0
+
+[node name="CharacterBody2D" type="CharacterBody2D"]
+position = Vector2(960, 540)
+collision_layer = 3
+script = SubResource("GDScript_gftm5")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_left = -6.0
+offset_top = -9.0
+offset_right = 6.0
+offset_bottom = 9.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_r85ru")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(3, 3)
+
+[node name="circle" type="Node2D" parent="."]
+rotation = 559.085
+script = ExtResource("1_smqks")
+radius = 113.0
+progress = 0.6
+segments = 113
+stride = 83
+
+[node name="summonator" type="Node2D" parent="."]
+script = ExtResource("2_0k2nb")
+interval = 5.0

@@ -7,6 +7,8 @@ script/source = "extends Node2D
 
 var target: Node
 
+signal done
+
 func _ready():
 	$AnimationPlayer.play('start')
 
@@ -14,11 +16,59 @@ func _process(delta):
 	pass
 
 func _on_generated():
+	done.emit()
 	$AnimationPlayer.play('end')
 
 func start():
 	var generator: WFC2DGenerator = target.degenerate(Vector2i(position/16.0), 4)
 	generator.done.connect(self._on_generated)
+
+var is_disintegrating: bool = false
+
+var vaporization_particles_scene: PackedScene = preload(\"res://vaporization.tscn\")
+
+func _disintegrate_object(node: Node2D):
+	node.call_deferred('disintegrate')
+
+	var vaporization_particles: Node2D = vaporization_particles_scene.instantiate()
+	vaporization_particles.position = node.position
+	node.get_parent().add_child(vaporization_particles)
+
+func _desintegrate_collider(collider: CollisionObject2D):
+	if collider.has_method('disintegrate'):
+		_disintegrate_object(collider)
+		return
+
+	var collider_owner = collider.owner
+
+	if collider_owner == null:
+		push_error(\"Collider is not owned and is nod disintegratable\")
+		return
+
+	if not collider_owner.has_method('disintegrate'):
+		push_error(\"Collider owner has no disintegrate() method\")
+		return
+
+	_disintegrate_object(collider_owner)
+
+func start_disintegrating():
+	is_disintegrating = true
+	var da: Area2D = $desintegrationArea
+	for body in da.get_overlapping_bodies():
+		_desintegrate_collider(body)
+	for area in da.get_overlapping_areas():
+		_desintegrate_collider(area)
+
+func stop_disintegrating():
+	is_disintegrating = false
+
+func _on_desintegration_area_entered(area):
+	if is_disintegrating:
+		_desintegrate_collider(area)
+
+func _on_desintegration_area_body_entered(body):
+	if is_disintegrating:
+		_desintegrate_collider(body)
 "
 
 [sub_resource type="Animation" id="Animation_jy43e"]
@@ -46,48 +96,6 @@ tracks/1/keys = {
 "transitions": PackedFloat32Array(1),
 "update": 0,
 "values": [128.0]
-}
-
-[sub_resource type="Animation" id="Animation_mygwr"]
-resource_name = "start"
-length = 2.0
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("noise:scale")
-tracks/0/interp = 2
-tracks/0/loop_wrap = false
-tracks/0/keys = {
-"times": PackedFloat32Array(1.3, 1.8, 2),
-"transitions": PackedFloat32Array(1, 1, 1),
-"update": 0,
-"values": [Vector2(0, 0), Vector2(9, 9), Vector2(8, 8)]
-}
-tracks/1/type = "value"
-tracks/1/imported = false
-tracks/1/enabled = true
-tracks/1/path = NodePath("circle:radius")
-tracks/1/interp = 1
-tracks/1/loop_wrap = true
-tracks/1/keys = {
-"times": PackedFloat32Array(0, 0.4, 2),
-"transitions": PackedFloat32Array(1, 1, 1),
-"update": 0,
-"values": [16.0, 120.0, 100.0]
-}
-tracks/2/type = "method"
-tracks/2/imported = false
-tracks/2/enabled = true
-tracks/2/path = NodePath(".")
-tracks/2/interp = 1
-tracks/2/loop_wrap = true
-tracks/2/keys = {
-"times": PackedFloat32Array(2),
-"transitions": PackedFloat32Array(1),
-"values": [{
-"args": [],
-"method": &"start"
-}]
 }
 
 [sub_resource type="Animation" id="Animation_ytrlr"]
@@ -124,11 +132,59 @@ tracks/2/path = NodePath(".")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
-"times": PackedFloat32Array(2),
-"transitions": PackedFloat32Array(1),
+"times": PackedFloat32Array(0.3, 2),
+"transitions": PackedFloat32Array(1, 1),
 "values": [{
 "args": [],
+"method": &"stop_disintegrating"
+}, {
+"args": [],
 "method": &"queue_free"
+}]
+}
+
+[sub_resource type="Animation" id="Animation_mygwr"]
+resource_name = "start"
+length = 2.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("noise:scale")
+tracks/0/interp = 2
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(1.3, 1.8, 2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0, 0), Vector2(9, 9), Vector2(8, 8)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("circle:radius")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.4, 2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [16.0, 120.0, 100.0]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(1.5, 2),
+"transitions": PackedFloat32Array(1, 1),
+"values": [{
+"args": [],
+"method": &"start_disintegrating"
+}, {
+"args": [],
+"method": &"start"
 }]
 }
 
@@ -150,6 +206,7 @@ extends Node2D
 
 @export var radius: float = 128
 
+@export var color: Color = Color.RED * 2.0
 
 func _ready():
 	pass # Replace with function body.
@@ -160,12 +217,12 @@ func _process(delta):
 	queue_redraw()
 
 func _draw():
-	draw_arc(Vector2.ZERO, radius, 0, 360, 360, Color.RED, 1.0, true)
+	draw_arc(Vector2.ZERO, radius, 0, 360, 360, color, 1.0, true)
 
 	if radius < 16:
 		return
 
-	draw_arc(Vector2.ZERO, radius - 16, 0, 360, 360, Color.RED, 1.0, true)
+	draw_arc(Vector2.ZERO, radius - 16, 0, 360, 360, color, 1.0, true)
 
 	if radius < 32:
 		return
@@ -180,12 +237,12 @@ func _draw():
 		var p = (Vector2.DOWN * (radius - 24)).rotated(deg_to_rad(a))
 		var q = p.rotated(deg_to_rad(2 * 360 / 5))
 
-		draw_line(p, q, Color.RED, 0.5, true)
+		draw_line(p, q, color, 0.5, true)
 
 		draw_line(
 			lerp(p, q, k),
 			lerp(p, q, m),
-			Color.RED, 1.5, true
+			color, 1.5, true
 		)
 "
 
@@ -211,12 +268,16 @@ offset_right = 16.0
 offset_bottom = 16.0
 
 [node name="circle" type="Node2D" parent="."]
-rotation = 9496.06
+rotation = 42616.2
 script = SubResource("GDScript_slrjc")
-
-[node name="Camera2D" type="Camera2D" parent="."]
+color = Color(1, 0, 0, 1)
 
 [node name="desintegrationArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="desintegrationArea"]
 shape = SubResource("CircleShape2D_s6mdk")
+
+[connection signal="area_entered" from="desintegrationArea" to="." method="_on_desintegration_area_entered"]
+[connection signal="body_entered" from="desintegrationArea" to="." method="_on_desintegration_area_body_entered"]
