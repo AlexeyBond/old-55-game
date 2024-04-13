@@ -1,0 +1,100 @@
+[gd_resource type="VisualShader" load_steps=9 format=3 uid="uid://b7ma85yip2ejt"]
+
+[ext_resource type="Script" path="res://addons/shaderV/tools/TimeScaled.gd" id="1_oxe5f"]
+
+[sub_resource type="VisualShaderNodeExpression" id="VisualShaderNodeExpression_ed3wl"]
+size = Vector2(420, 300)
+expression = "vec4 co = vec4(uv.x, uv.y, t, 0.0);
+float f = dot(fract(co) + fract(co * 2.32184321231),vec4(129.898,782.33,944.32214932,122.2834234542));
+res = fract(sin(f) * 437588.5453);"
+
+[sub_resource type="VisualShaderNodeVectorDistance" id="VisualShaderNodeVectorDistance_tldv6"]
+default_input_values = [0, Vector2(0, 0), 1, Vector2(0.5, 0.5)]
+op_type = 0
+
+[sub_resource type="Curve" id="Curve_awdlt"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.395506, 1), 0.0, 0.0, 0, 0, Vector2(0.501124, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_cnmek"]
+curve = SubResource("Curve_awdlt")
+
+[sub_resource type="VisualShaderNodeCurveTexture" id="VisualShaderNodeCurveTexture_vtke3"]
+texture = SubResource("CurveTexture_cnmek")
+
+[sub_resource type="VisualShaderNodeCustom" id="VisualShaderNodeCustom_771hl"]
+default_input_values = [0, 10.0]
+initialized = true
+script = ExtResource("1_oxe5f")
+
+[sub_resource type="VisualShaderNodeInput" id="VisualShaderNodeInput_ecg7r"]
+input_name = "uv"
+
+[resource]
+code = "shader_type canvas_item;
+render_mode blend_mix;
+
+uniform sampler2D curve_frg_12 : repeat_disable;
+
+
+
+void fragment() {
+// Input:6
+	vec2 n_out6p0 = UV;
+
+
+	float n_out4p0;
+// ScaledTIME:4
+	float n_in4p0 = 10.00000;
+	{
+		n_out4p0 = n_in4p0 * TIME;
+	}
+
+
+	float n_out10p0;
+// Expression:10
+	n_out10p0 = 0.0;
+	{
+		vec4 co = vec4(n_out6p0.x, n_out6p0.y, n_out4p0, 0.0);
+		float f = dot(fract(co) + fract(co * 2.32184321231),vec4(129.898,782.33,944.32214932,122.2834234542));
+		n_out10p0 = fract(sin(f) * 437588.5453);
+	}
+
+
+// Distance:11
+	vec2 n_in11p1 = vec2(0.50000, 0.50000);
+	float n_out11p0 = distance(n_out6p0, n_in11p1);
+
+
+// CurveTexture:12
+	float n_out12p0 = texture(curve_frg_12, vec2(n_out11p0)).r;
+
+
+// Output:0
+	COLOR.rgb = vec3(n_out10p0);
+	COLOR.a = n_out12p0;
+
+
+}
+"
+graph_offset = Vector2(-85.2514, 526.933)
+mode = 1
+flags/light_only = false
+nodes/fragment/0/position = Vector2(800, 600)
+nodes/fragment/4/node = SubResource("VisualShaderNodeCustom_771hl")
+nodes/fragment/4/position = Vector2(-420, 280)
+nodes/fragment/6/node = SubResource("VisualShaderNodeInput_ecg7r")
+nodes/fragment/6/position = Vector2(-520, 160)
+nodes/fragment/10/node = SubResource("VisualShaderNodeExpression_ed3wl")
+nodes/fragment/10/position = Vector2(0, 100)
+nodes/fragment/10/size = Vector2(420, 300)
+nodes/fragment/10/input_ports = "0,3,uv;1,0,t;"
+nodes/fragment/10/output_ports = "0,0,res;"
+nodes/fragment/10/expression = "vec4 co = vec4(uv.x, uv.y, t, 0.0);
+float f = dot(fract(co) + fract(co * 2.32184321231),vec4(129.898,782.33,944.32214932,122.2834234542));
+res = fract(sin(f) * 437588.5453);"
+nodes/fragment/11/node = SubResource("VisualShaderNodeVectorDistance_tldv6")
+nodes/fragment/11/position = Vector2(-100, 580)
+nodes/fragment/12/node = SubResource("VisualShaderNodeCurveTexture_vtke3")
+nodes/fragment/12/position = Vector2(160, 700)
+nodes/fragment/connections = PackedInt32Array(10, 0, 0, 0, 6, 0, 10, 0, 4, 0, 10, 1, 6, 0, 11, 0, 11, 0, 12, 0, 12, 0, 0, 1)
