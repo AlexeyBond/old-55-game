@@ -31,10 +31,10 @@ func _draw():
 	var m = clamp(float(t) / 250.0 - 1.0, 0.0, 1.0)
 
 	for i in range(5):
-		var a = i * 360 / 5
+		var a = i * 360 / 5.0
 
 		var p = (Vector2.DOWN * (radius - 24)).rotated(deg_to_rad(a))
-		var q = p.rotated(deg_to_rad(2 * 360 / 5))
+		var q = p.rotated(deg_to_rad(2 * 360.0 / 5))
 
 		draw_line(p, q, color, 0.5, true)
 
