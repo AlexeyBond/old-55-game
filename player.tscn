@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://buxnp08xjxwmo"]
+[gd_scene load_steps=11 format=3 uid="uid://buxnp08xjxwmo"]
 
 [ext_resource type="Script" path="res://player-circle.gd" id="1_smqks"]
 [ext_resource type="Script" path="res://player-summonator.gd" id="2_0k2nb"]
+[ext_resource type="Texture2D" uid="uid://dafirfo2502o" path="res://addons/wfc/examples/assets/kenney-tiny-dungeon/tilemap_packed.png" id="3_dlf6n"]
 
 [sub_resource type="GDScript" id="GDScript_gftm5"]
 script/source = "extends CharacterBody2D
@@ -27,15 +28,20 @@ func _physics_process(delta):
 	else:
 		velocity.y = move_toward(velocity.y, 0, delta * NEGATIVE_ACCELERATION)
 
+	if velocity.length_squared() < 0.1:
+		$AnimationPlayer.play('idle')
+	else:
+		$AnimationPlayer.current_animation = 'walk'
+
 	move_and_slide()
 
-func _unhandled_input(event):
-	if event.is_action_pressed(\"ui_accept\"):
-		var map = get_node(\"..\")
-		var degenerator_instance = degenerator.instantiate();
-		degenerator_instance.target = map
-		degenerator_instance.transform = self.transform
-		map.add_child(degenerator_instance)
+#func _unhandled_input(event):
+	#if event.is_action_pressed(\"ui_accept\"):
+		#var map = get_node(\"..\")
+		#var degenerator_instance = degenerator.instantiate();
+		#degenerator_instance.target = map
+		#degenerator_instance.transform = self.transform
+		#map.add_child(degenerator_instance)
 
 signal disintegrated
 
@@ -43,31 +49,93 @@ func disintegrate():
 	disintegrated.emit()
 	$Camera2D.reparent(get_parent())
 	queue_free()
+
+var dead_scene: PackedScene = preload(\"res://player-dead.tscn\")
+
+func die():
+	disintegrate()
+	var dead: Node2D = dead_scene.instantiate()
+	dead.position = position
+	get_parent().add_child(dead)
+
+func _on_killer_sensor_body_entered(body):
+	die()
+
+func _on_killer_sensor_area_entered(area):
+	die()
 "
+
+[sub_resource type="Animation" id="Animation_tloby"]
+resource_name = "idle"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_xsv51"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_rngdd"]
+resource_name = "walk"
+length = 0.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(0, 1), Vector2(0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_n4jrh"]
+_data = {
+"RESET": SubResource("Animation_xsv51"),
+"idle": SubResource("Animation_tloby"),
+"walk": SubResource("Animation_rngdd")
+}
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_r85ru"]
 radius = 6.0
 height = 14.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_37bwg"]
+size = Vector2(8, 2)
 
 [node name="CharacterBody2D" type="CharacterBody2D"]
 position = Vector2(960, 540)
 collision_layer = 3
 script = SubResource("GDScript_gftm5")
 
-[node name="ColorRect" type="ColorRect" parent="."]
-offset_left = -6.0
-offset_top = -9.0
-offset_right = 6.0
-offset_bottom = 9.0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("CapsuleShape2D_r85ru")
-
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(3, 3)
 
 [node name="circle" type="Node2D" parent="."]
-rotation = 559.085
+rotation = 992.886
 script = ExtResource("1_smqks")
 radius = 113.0
 progress = 0.6
@@ -77,3 +145,28 @@ stride = 83
 [node name="summonator" type="Node2D" parent="."]
 script = ExtResource("2_0k2nb")
 interval = 5.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("3_dlf6n")
+region_enabled = true
+region_rect = Rect2(16, 112, 16, 16)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_n4jrh")
+}
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 2)
+shape = SubResource("CapsuleShape2D_r85ru")
+
+[node name="killerSensor" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="killerSensor"]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_37bwg")
+
+[connection signal="area_entered" from="killerSensor" to="." method="_on_killer_sensor_area_entered"]
+[connection signal="body_entered" from="killerSensor" to="." method="_on_killer_sensor_body_entered"]

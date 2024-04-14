@@ -60,6 +60,7 @@ ui_down={
 
 2d_physics/layer_1="Physical"
 2d_physics/layer_2="Killable"
+2d_physics/layer_3="PlayerKiller"
 
 [rendering]
 
