@@ -21,6 +21,9 @@ func _on_generated():
 	$AnimationPlayer.play('end')
 
 func start():
+	if target == null or not target.has_method('degenerate'):
+		push_error(\"No target for degenerator\")
+		return
 	var generator: WFC2DGenerator = target.degenerate(Vector2i(position/16.0), 4)
 	generator.done.connect(self._on_generated)
 

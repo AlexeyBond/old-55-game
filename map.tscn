@@ -21,6 +21,8 @@ func _ready():
 	$loadingUI.show()
 	$gameoverUI.hide()
 
+	add_to_group('score_manager')
+
 func _process(delta):
 	if has_node(\"generator\"):
 		var generator = $generator
@@ -46,6 +48,7 @@ var player: Node2D
 
 func _allow_start_game():
 	%StartButton.show()
+	%StartButton.grab_focus()
 	%StartButton.pressed.connect(_start_game)
 
 func _start_game():
@@ -56,7 +59,9 @@ func _start_game():
 	add_child(player)
 
 func _on_player_disintegrated():
+	%ScoreLabel.text = \"Score: %d\" % [total_score]
 	$gameoverUI.show()
+	%RestartButton.grab_focus()
 	$gameoverUI/AnimationPlayer.play('fade_in')
 
 func _on_degenerated(generator: WFC2DGenerator):
@@ -87,6 +92,18 @@ func degenerate(position: Vector2i, radius: int) -> WFC2DGenerator:
 
 func _on_restart_button_pressed():
 	get_tree().reload_current_scene()
+
+var score_number_scene: PackedScene = preload(\"res://score_number.tscn\")
+
+var total_score: float = 0
+
+func add_score(source: Node2D, amount: float):
+	total_score += amount
+
+	var number: Node2D = score_number_scene.instantiate()
+	number.position = source.position
+	number.amount = amount
+	source.get_parent().add_child(number)
 "
 
 [sub_resource type="Resource" id="Resource_50ak6"]
@@ -243,7 +260,6 @@ theme_override_font_sizes/font_size = 32
 text = "   Start   "
 
 [node name="gameoverUI" type="CanvasLayer" parent="."]
-visible = false
 
 [node name="ColorRect" type="ColorRect" parent="gameoverUI"]
 anchors_preset = 15
@@ -268,6 +284,12 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "Game Over"
+
+[node name="ScoreLabel" type="Label" parent="gameoverUI/ColorRect/CenterContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Score: 100500"
+horizontal_alignment = 1
 
 [node name="RestartButton" type="Button" parent="gameoverUI/ColorRect/CenterContainer/VBoxContainer"]
 unique_name_in_owner = true

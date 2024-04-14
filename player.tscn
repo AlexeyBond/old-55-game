@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://buxnp08xjxwmo"]
+[gd_scene load_steps=12 format=3 uid="uid://buxnp08xjxwmo"]
 
 [ext_resource type="Script" path="res://player-circle.gd" id="1_smqks"]
 [ext_resource type="Script" path="res://player-summonator.gd" id="2_0k2nb"]
@@ -63,6 +63,48 @@ func _on_killer_sensor_body_entered(body):
 
 func _on_killer_sensor_area_entered(area):
 	die()
+
+var axe_speed: float = 0
+
+func _process(delta):
+	if Input.is_action_pressed(\"ui_accept\"):
+		axe_speed = PI * 6.0
+	else:
+		axe_speed = max(0, axe_speed - delta * PI * 8)
+	$axeRoot.rotate(delta * axe_speed)
+
+var vaporization_particles_scene: PackedScene = preload(\"res://vaporization.tscn\")
+
+func _disintegrate_object(node: Node2D):
+	node.call_deferred('disintegrate')
+
+	var vaporization_particles: Node2D = vaporization_particles_scene.instantiate()
+	vaporization_particles.position = node.position
+	node.get_parent().add_child(vaporization_particles)
+
+func _disintegrate_collider(collider: CollisionObject2D):
+	if collider.has_method('disintegrate'):
+		_disintegrate_object(collider)
+		return
+
+	var collider_owner = collider.owner
+
+	if collider_owner == null:
+		push_error(\"Collider is not owned and is nod disintegratable\")
+		return
+
+	if not collider_owner.has_method('disintegrate'):
+		push_error(\"Collider owner has no disintegrate() method\")
+		return
+
+	_disintegrate_object(collider_owner)
+
+func _on_axe_strike_area_area_entered(area):
+	_disintegrate_collider(area)
+
+
+func _on_axe_strike_area_body_entered(body):
+	_disintegrate_collider(body)
 "
 
 [sub_resource type="Animation" id="Animation_tloby"]
@@ -126,6 +168,10 @@ height = 14.0
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_37bwg"]
 size = Vector2(8, 2)
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_frpp0"]
+radius = 6.0
+height = 16.0
+
 [node name="CharacterBody2D" type="CharacterBody2D"]
 position = Vector2(960, 540)
 collision_layer = 3
@@ -135,7 +181,7 @@ script = SubResource("GDScript_gftm5")
 zoom = Vector2(3, 3)
 
 [node name="circle" type="Node2D" parent="."]
-rotation = 992.886
+rotation = 2894.16
 script = ExtResource("1_smqks")
 radius = 113.0
 progress = 0.6
@@ -168,5 +214,25 @@ collision_mask = 4
 position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_37bwg")
 
+[node name="axeRoot" type="Node2D" parent="."]
+position = Vector2(0, 2)
+
+[node name="Sprite2D2" type="Sprite2D" parent="axeRoot"]
+position = Vector2(24, 0)
+rotation = 1.57079
+texture = ExtResource("3_dlf6n")
+region_enabled = true
+region_rect = Rect2(160, 144, 16, 16)
+
+[node name="axeStrikeArea" type="Area2D" parent="axeRoot"]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="axeRoot/axeStrikeArea"]
+position = Vector2(26, 0)
+shape = SubResource("CapsuleShape2D_frpp0")
+
 [connection signal="area_entered" from="killerSensor" to="." method="_on_killer_sensor_area_entered"]
 [connection signal="body_entered" from="killerSensor" to="." method="_on_killer_sensor_body_entered"]
+[connection signal="area_entered" from="axeRoot/axeStrikeArea" to="." method="_on_axe_strike_area_area_entered"]
+[connection signal="body_entered" from="axeRoot/axeStrikeArea" to="." method="_on_axe_strike_area_body_entered"]

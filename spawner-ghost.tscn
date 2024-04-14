@@ -59,7 +59,7 @@ script = ExtResource("1_ycafd")
 monsterScene = ExtResource("2_iqmg0")
 
 [node name="circle" type="Node2D" parent="."]
-rotation = 1732.06
+rotation = 3132.57
 script = ExtResource("1_cjjvt")
 radius = 0.0
 

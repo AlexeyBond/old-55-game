@@ -28,6 +28,7 @@ func _on_timer_timeout():
 
 func disintegrate():
 	queue_free()
+	get_tree().call_group('score_manager', 'add_score', self, 10.0)
 "
 
 [sub_resource type="Animation" id="Animation_jpfue"]
@@ -72,7 +73,6 @@ _data = {
 size = Vector2(14, 16)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_nk55n"]
-radius = 16.0
 
 [node name="Ghost" type="CharacterBody2D"]
 collision_layer = 2
